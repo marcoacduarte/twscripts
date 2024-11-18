@@ -92,9 +92,9 @@
         return Object.keys(totals)
             .map(
                 category =>
-                    ${category.toUpperCase()}:\n +
+                    `${category.toUpperCase()}:\n` +
                     Object.values(totals[category])
-                        .map(unit => ${unit.label}: ${unit.count})
+                        .map(unit => `${unit.label}: ${unit.count}`)
                         .join('\n')
             )
             .join('\n\n');
