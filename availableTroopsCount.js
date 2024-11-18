@@ -180,27 +180,11 @@
         const totals = calculateTotals(currentCategory);
         troopSections.appendChild(createTroopSection("Defensive Units", totals.defensive));
         troopSections.appendChild(createTroopSection("Offensive Units", totals.offensive));
+        updateVillageOverview(); // Update the village overview table as well
     }
 
     updateTroopSections();
     container.appendChild(troopSections);
-
-    // Checkbox for toggling the village troop overview
-    const overviewCheckboxContainer = document.createElement("div");
-    overviewCheckboxContainer.style.marginTop = "20px";
-
-    const overviewCheckbox = document.createElement("input");
-    overviewCheckbox.type = "checkbox";
-    overviewCheckbox.id = "show-overview";
-    overviewCheckbox.style.marginRight = "10px";
-
-    const overviewCheckboxLabel = document.createElement("label");
-    overviewCheckboxLabel.htmlFor = "show-overview";
-    overviewCheckboxLabel.textContent = "Show Village Troop Overview";
-
-    overviewCheckboxContainer.appendChild(overviewCheckbox);
-    overviewCheckboxContainer.appendChild(overviewCheckboxLabel);
-    container.appendChild(overviewCheckboxContainer);
 
     // Village troop overview
     const villageOverview = document.createElement("div");
@@ -213,7 +197,6 @@
     overviewTable.style.borderCollapse = "collapse";
     overviewTable.style.marginTop = "10px";
 
-    // Header Row with Unit Images
     const overviewHeaderRow = document.createElement("tr");
     const villageHeader = document.createElement("th");
     villageHeader.textContent = "Village";
@@ -237,47 +220,66 @@
 
     overviewTable.appendChild(overviewHeaderRow);
 
-    // Data Rows
-    villages.forEach((village) => {
-        const row = document.createElement("tr");
-        const villageCell = document.createElement("td");
-        const villageLink = document.createElement("a");
-        villageLink.href = village.link;
-        villageLink.textContent = village.name;
-        villageLink.style.textDecoration = "none";
-        villageLink.style.color = "#603000";
-        villageCell.appendChild(villageLink);
-        villageCell.style.border = "1px solid #603000";
-        row.appendChild(villageCell);
+    function updateVillageOverview() {
+        overviewTable.innerHTML = ""; // Clear previous content
+        overviewTable.appendChild(overviewHeaderRow);
 
-        Object.keys(village.units[currentCategory]).forEach((unitType) => {
-            const unit = village.units[currentCategory][unitType];
-            const cell = document.createElement("td");
-            cell.style.border = "1px solid #603000";
-            cell.style.textAlign = "center";
-            cell.textContent = unit.count;
-            row.appendChild(cell);
+        villages.forEach((village) => {
+            const row = document.createElement("tr");
+            const villageCell = document.createElement("td");
+            const villageLink = document.createElement("a");
+            villageLink.href = village.link;
+            villageLink.textContent = village.name;
+            villageLink.style.textDecoration = "none";
+            villageLink.style.color = "#603000";
+            villageCell.appendChild(villageLink);
+            villageCell.style.border = "1px solid #603000";
+            row.appendChild(villageCell);
+
+            Object.keys(village.units[currentCategory]).forEach((unitType) => {
+                const unit = village.units[currentCategory][unitType];
+                const cell = document.createElement("td");
+                cell.style.border = "1px solid #603000";
+                cell.style.textAlign = "center";
+                cell.textContent = unit.count;
+                row.appendChild(cell);
+            });
+
+            overviewTable.appendChild(row);
         });
-
-        overviewTable.appendChild(row);
-    });
+    }
 
     villageOverview.appendChild(overviewTable);
     container.appendChild(villageOverview);
 
-    // Show/Hide Overview Logic
+    // Checkbox for toggling the village overview
+    const overviewCheckboxContainer = document.createElement("div");
+    overviewCheckboxContainer.style.marginTop = "20px";
+
+    const overviewCheckbox = document.createElement("input");
+    overviewCheckbox.type = "checkbox";
+    overviewCheckbox.id = "show-overview";
+    overviewCheckbox.style.marginRight = "10px";
+
+    const overviewCheckboxLabel = document.createElement("label");
+    overviewCheckboxLabel.htmlFor = "show-overview";
+    overviewCheckboxLabel.textContent = "Show Village Troop Overview";
+
+    overviewCheckboxContainer.appendChild(overviewCheckbox);
+    overviewCheckboxContainer.appendChild(overviewCheckboxLabel);
+    container.appendChild(overviewCheckboxContainer);
+
     overviewCheckbox.addEventListener("change", () => {
         villageOverview.style.display = overviewCheckbox.checked ? "block" : "none";
     });
 
-    // Radio buttons for toggling categories
+    // Radio buttons for categories
     const categoryContainer = document.createElement("div");
-    categoryContainer.style.marginTop = "20px";
+    categoryContainer.style.marginTop = "10px";
+    categoryContainer.style.textAlign = "center";
+
     const troopCategories = ["own", "in_village", "outside", "transit", "total"];
     troopCategories.forEach((category) => {
-        const wrapper = document.createElement("div");
-        wrapper.style.marginBottom = "5px";
-
         const radio = document.createElement("input");
         radio.type = "radio";
         radio.name = "category";
@@ -287,7 +289,11 @@
 
         const label = document.createElement("label");
         label.htmlFor = `category-${category}`;
-        label.textContent = `Show ${category.replace("_", " ").toUpperCase()}`;
+        label.textContent = category.replace("_", " ").toUpperCase();
+        label.style.marginRight = "10px";
+        label.style.fontWeight = "bold";
+
+        radio.style.marginRight = "5px";
 
         radio.addEventListener("change", () => {
             currentCategory = radio.value;
@@ -295,9 +301,8 @@
             updateTroopSections();
         });
 
-        wrapper.appendChild(radio);
-        wrapper.appendChild(label);
-        categoryContainer.appendChild(wrapper);
+        categoryContainer.appendChild(radio);
+        categoryContainer.appendChild(label);
     });
 
     container.appendChild(categoryContainer);
@@ -312,7 +317,17 @@
     copyButton.textContent = "Copy";
     copyButton.classList.add("btn");
     copyButton.onclick = () => {
-        navigator.clipboard.writeText(formatForCopying(calculateTotals(currentCategory)));
+        navigator.clipboard.writeText(
+            Object.keys(calculateTotals(currentCategory))
+                .map(
+                    (category) =>
+                        `${category.toUpperCase()}:\n` +
+                        Object.values(calculateTotals(currentCategory)[category])
+                            .map((unit) => `${unit.label}: ${unit.count}`)
+                            .join("\n")
+                )
+                .join("\n\n")
+        );
         copyButton.textContent = "Copied!";
         setTimeout(() => {
             copyButton.textContent = "Copy";
