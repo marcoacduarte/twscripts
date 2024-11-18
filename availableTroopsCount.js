@@ -243,8 +243,6 @@
     buttonContainer.appendChild(closeButton);
     container.appendChild(buttonContainer);
 
-    document.body.appendChild(container);
-
     const villageOverview = document.createElement('div');
     villageOverview.style.marginTop = '20px';
     villageOverview.style.textAlign = 'left';
@@ -279,4 +277,6 @@
     overviewTable.appendChild(overviewHeaderRow);
     villageOverview.appendChild(overviewTable);
     container.appendChild(villageOverview);
+
+    document.body.appendChild(container);
 })();
