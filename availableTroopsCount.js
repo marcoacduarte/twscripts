@@ -42,7 +42,7 @@
             const units = {};
 
             unitItems.forEach((unit, unitIndex) => {
-                const imgElement = table.querySelector(thead th:nth-child(${unitIndex + 3}) img);
+                const imgElement = table.querySelector(`thead th:nth-child(${unitIndex + 3}) img`);
                 if (imgElement) {
                     const unitType = imgElement.src.split('/').pop().split('.')[0]; // Extract unit identifier without .png
                     const unitValue = unit.classList.contains('hidden') ? 0 : parseInt(unit.innerText.trim(), 10);
