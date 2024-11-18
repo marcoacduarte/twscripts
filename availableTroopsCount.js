@@ -1,4 +1,4 @@
-(function() {
+(function () {
     const currentUrl = window.location.href;
 
     // Correct URL path
@@ -8,7 +8,7 @@
     // Check if the current URL includes the correct screen and mode
     if (!currentUrl.includes(correctScreen) || !currentUrl.includes(correctMode)) {
         const villageId = new URLSearchParams(window.location.search).get("village") || "0";
-        window.location.href = /game.php?village=${villageId}&screen=overview_villages&mode=units;
+        window.location.href = `/game.php?village=${villageId}&screen=overview_villages&mode=units`;
         return;
     }
 
@@ -42,7 +42,7 @@
             const units = {};
 
             unitItems.forEach((unit, unitIndex) => {
-                const imgElement = table.querySelector(thead th:nth-child(${unitIndex + 3}) img);
+                const imgElement = table.querySelector(`thead th:nth-child(${unitIndex + 3}) img`);
                 if (imgElement) {
                     const unitType = imgElement.src.split('/').pop().split('.')[0]; // Extract unit identifier without .png
                     const unitValue = unit.classList.contains('hidden') ? 0 : parseInt(unit.innerText.trim(), 10);
@@ -92,9 +92,9 @@
         return Object.keys(totals)
             .map(
                 category =>
-                    ${category.toUpperCase()}:\n +
+                    `${category.toUpperCase()}:\n` +
                     Object.values(totals[category])
-                        .map(unit => ${unit.label}: ${unit.count})
+                        .map(unit => `${unit.label}: ${unit.count}`)
                         .join('\n')
             )
             .join('\n\n');
