@@ -36,7 +36,6 @@
 
         unitRows.forEach((unitRow, index) => {
             const category = troopCategories[index];
-            if (category !== "own") return; // Only count "own" units
 
             const unitItems = Array.from(unitRow.querySelectorAll('.unit-item'));
             const units = {};
@@ -130,67 +129,210 @@
         });
     }
 
+    // Create floating div container
     const container = document.createElement('div');
     container.id = 'troop-overlay';
-    container.style = `
-        position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-        background-color: #f4e4bc; border: 1px solid #ccc; padding: 20px;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.2); z-index: 10000;
-        border-radius: 8px; text-align: center; width: 80%; max-width: 900px;
-        font-family: Verdana; color: #603000; overflow-y: auto; max-height: 80vh;
-    `;
+    container.style.position = 'fixed';
+    container.style.top = '50%';
+    container.style.left = '50%';
+    container.style.transform = 'translate(-50%, -50%)';
+    container.style.backgroundColor = '#f4e4bc';
+    container.style.border = '1px solid #ccc';
+    container.style.padding = '20px';
+    container.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
+    container.style.zIndex = '10000';
+    container.style.borderRadius = '8px';
+    container.style.textAlign = 'center';
+    container.style.width = '80%';
+    container.style.maxWidth = '900px';
+    container.style.fontFamily = 'Verdana';
+    container.style.color = '#603000';
+    container.style.overflowY = 'auto';
+    container.style.maxHeight = '80vh';
 
+    // Add title
     const title = document.createElement('h2');
     title.textContent = 'Available Units';
     title.style.marginBottom = '20px';
     title.style.textAlign = 'center';
     container.appendChild(title);
 
+    // Wrapper for troop sections
     const troopSections = document.createElement('div');
     troopSections.style.display = 'flex';
     troopSections.style.flexWrap = 'wrap';
     troopSections.style.justifyContent = 'space-around';
 
+    function createTroopSection(title, units) {
+        const section = document.createElement('div');
+        section.style.marginBottom = '15px';
+        section.style.width = '45%';
+
+        const header = document.createElement('h3');
+        header.textContent = title;
+        header.style.marginBottom = '10px';
+        section.appendChild(header);
+
+        const troopContainer = document.createElement('div');
+        troopContainer.style.display = 'grid';
+        troopContainer.style.gridTemplateColumns = 'repeat(auto-fill, minmax(100px, 1fr))';
+        troopContainer.style.gap = '10px';
+
+        Object.keys(units).forEach(unitType => {
+            const unit = units[unitType];
+
+            const troopDiv = document.createElement('div');
+            troopDiv.style.display = 'flex';
+            troopDiv.style.flexDirection = 'column';
+            troopDiv.style.alignItems = 'center';
+
+            const img = document.createElement('img');
+            img.src = unit.imgUrl;
+            img.alt = unit.label;
+            img.style.width = '40px';
+            img.style.height = '40px';
+
+            const count = document.createElement('span');
+            count.textContent = unit.count;
+            count.style.marginTop = '5px';
+            count.style.fontWeight = 'bold';
+
+            troopDiv.appendChild(img);
+            troopDiv.appendChild(count);
+            troopContainer.appendChild(troopDiv);
+        });
+
+        section.appendChild(troopContainer);
+        return section;
+    }
+
+    const defensiveSection = createTroopSection("Defensive Units", calculateTotals(currentCategory).defensive);
+    const offensiveSection = createTroopSection("Offensive Units", calculateTotals(currentCategory).offensive);
+
+    troopSections.appendChild(defensiveSection);
+    troopSections.appendChild(offensiveSection);
+
     container.appendChild(troopSections);
 
+    // Village troop overview
     const villageOverview = document.createElement('div');
     villageOverview.style.marginTop = '20px';
     villageOverview.style.textAlign = 'left';
     villageOverview.style.display = 'none'; // Initially hidden
 
     const overviewTable = document.createElement('table');
-    overviewTable.style = `
-        width: 100%; border-collapse: collapse; margin-top: 10px;
-    `;
+    overviewTable.style.width = '100%';
+    overviewTable.style.borderCollapse = 'collapse';
+    overviewTable.style.marginTop = '10px';
 
+    // Header Row with Unit Images
     const overviewHeaderRow = document.createElement('tr');
     const villageHeader = document.createElement('th');
     villageHeader.textContent = 'Village';
-    villageHeader.style = `
-        border: 1px solid #603000; text-align: center; font-weight: bold;
-    `;
+    villageHeader.style.border = '1px solid #603000';
+    villageHeader.style.textAlign = 'center';
+    villageHeader.style.fontWeight = 'bold';
     overviewHeaderRow.appendChild(villageHeader);
 
     Object.keys(villages[0].units[currentCategory]).forEach(unitType => {
         const th = document.createElement('th');
-        th.style = `
-            border: 1px solid #603000; text-align: center;
-        `;
+        th.style.border = '1px solid #603000';
+        th.style.textAlign = 'center';
         const img = document.createElement('img');
         img.src = villages[0].units[currentCategory][unitType].imgUrl;
         img.alt = unitType;
-        img.style = `
-            width: 20px; height: 20px;
-        `;
+        img.style.width = '20px';
+        img.style.height = '20px';
         th.appendChild(img);
         overviewHeaderRow.appendChild(th);
     });
 
     overviewTable.appendChild(overviewHeaderRow);
 
+    // Add rows for villages
+    villages.forEach(village => {
+        const row = document.createElement('tr');
+        const villageCell = document.createElement('td');
+        const villageLink = document.createElement('a');
+        villageLink.href = village.link;
+        villageLink.textContent = village.name;
+        villageLink.style.textDecoration = 'none';
+        villageLink.style.color = '#603000';
+        villageCell.appendChild(villageLink);
+        villageCell.style.border = '1px solid #603000';
+        row.appendChild(villageCell);
+
+        Object.keys(village.units[currentCategory]).forEach(unitType => {
+            const unit = village.units[currentCategory][unitType];
+            const cell = document.createElement('td');
+            cell.style.border = '1px solid #603000';
+            cell.style.textAlign = 'center';
+            cell.textContent = unit.count;
+            row.appendChild(cell);
+        });
+
+        overviewTable.appendChild(row);
+    });
+
     villageOverview.appendChild(overviewTable);
     container.appendChild(villageOverview);
 
+    // Radio buttons for troop categories
+    const categoryContainer = document.createElement('div');
+    categoryContainer.style.marginTop = '10px';
+    categoryContainer.style.textAlign = 'center';
+
+    const troopCategories = ["own", "in_village", "outside", "transit", "total"];
+    troopCategories.forEach(category => {
+        const radio = document.createElement('input');
+        radio.type = 'radio';
+        radio.name = 'category';
+        radio.id = `category-${category}`;
+        radio.value = category;
+        if (category === currentCategory) radio.checked = true;
+
+        const label = document.createElement('label');
+        label.htmlFor = `category-${category}`;
+        label.textContent = category.replace("_", " ").toUpperCase();
+        label.style.marginRight = '10px';
+        label.style.fontWeight = 'bold';
+
+        radio.style.marginRight = '5px';
+
+        radio.addEventListener('change', () => {
+            currentCategory = radio.value;
+            title.textContent = `${category.replace("_", " ").toUpperCase()} Troops`;
+            updateTroopSections();
+        });
+
+        categoryContainer.appendChild(radio);
+        categoryContainer.appendChild(label);
+    });
+
+    container.appendChild(categoryContainer);
+
+    // Add checkbox to show/hide overview
+    const checkboxContainer = document.createElement('div');
+    checkboxContainer.style.marginTop = '20px';
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.id = 'show-overview';
+    checkbox.style.marginRight = '10px';
+
+    const checkboxLabel = document.createElement('label');
+    checkboxLabel.htmlFor = 'show-overview';
+    checkboxLabel.textContent = 'Show Village Troop Overview';
+
+    checkboxContainer.appendChild(checkbox);
+    checkboxContainer.appendChild(checkboxLabel);
+    container.appendChild(checkboxContainer);
+
+    checkbox.addEventListener('change', () => {
+        villageOverview.style.display = checkbox.checked ? 'block' : 'none';
+    });
+
+    // Button container
     const buttonContainer = document.createElement('div');
     buttonContainer.style.marginTop = '20px';
     buttonContainer.style.display = 'flex';
@@ -198,10 +340,19 @@
 
     const copyButton = document.createElement('button');
     copyButton.textContent = 'Copy';
+    copyButton.classList.add('btn');
     copyButton.onclick = () => {
-        const totals = calculateTotals(currentCategory);
-        const copyContent = formatForCopying(totals);
-        navigator.clipboard.writeText(copyContent);
+        navigator.clipboard.writeText(
+            Object.keys(calculateTotals(currentCategory))
+                .map(
+                    category =>
+                        `${category.toUpperCase()}:\n` +
+                        Object.values(calculateTotals(currentCategory)[category])
+                            .map(unit => `${unit.label}: ${unit.count}`)
+                            .join('\n')
+                )
+                .join('\n\n')
+        );
         copyButton.textContent = 'Copied!';
         setTimeout(() => {
             copyButton.textContent = 'Copy';
@@ -210,12 +361,14 @@
 
     const closeButton = document.createElement('button');
     closeButton.textContent = 'Close';
+    closeButton.classList.add('btn');
     closeButton.onclick = () => {
         container.remove();
     };
 
     buttonContainer.appendChild(copyButton);
     buttonContainer.appendChild(closeButton);
+
     container.appendChild(buttonContainer);
 
     document.body.appendChild(container);
