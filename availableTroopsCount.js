@@ -183,9 +183,6 @@
         updateVillageOverview(); // Update the village overview table as well
     }
 
-    updateTroopSections();
-    container.appendChild(troopSections);
-
     // Village troop overview
     const villageOverview = document.createElement("div");
     villageOverview.style.marginTop = "20px";
@@ -197,33 +194,37 @@
     overviewTable.style.borderCollapse = "collapse";
     overviewTable.style.marginTop = "10px";
 
-    const overviewHeaderRow = document.createElement("tr");
-    const villageHeader = document.createElement("th");
-    villageHeader.textContent = "Village";
-    villageHeader.style.border = "1px solid #603000";
-    villageHeader.style.textAlign = "center";
-    villageHeader.style.fontWeight = "bold";
-    overviewHeaderRow.appendChild(villageHeader);
-
-    Object.keys(villages[0].units[currentCategory]).forEach((unitType) => {
-        const th = document.createElement("th");
-        th.style.border = "1px solid #603000";
-        th.style.textAlign = "center";
-        const img = document.createElement("img");
-        img.src = villages[0].units[currentCategory][unitType].imgUrl;
-        img.alt = unitType;
-        img.style.width = "20px";
-        img.style.height = "20px";
-        th.appendChild(img);
-        overviewHeaderRow.appendChild(th);
-    });
-
-    overviewTable.appendChild(overviewHeaderRow);
+    villageOverview.appendChild(overviewTable);
+    container.appendChild(villageOverview);
 
     function updateVillageOverview() {
         overviewTable.innerHTML = ""; // Clear previous content
+
+        // Create header row
+        const overviewHeaderRow = document.createElement("tr");
+        const villageHeader = document.createElement("th");
+        villageHeader.textContent = "Village";
+        villageHeader.style.border = "1px solid #603000";
+        villageHeader.style.textAlign = "center";
+        villageHeader.style.fontWeight = "bold";
+        overviewHeaderRow.appendChild(villageHeader);
+
+        Object.keys(villages[0].units[currentCategory]).forEach((unitType) => {
+            const th = document.createElement("th");
+            th.style.border = "1px solid #603000";
+            th.style.textAlign = "center";
+            const img = document.createElement("img");
+            img.src = villages[0].units[currentCategory][unitType].imgUrl;
+            img.alt = unitType;
+            img.style.width = "20px";
+            img.style.height = "20px";
+            th.appendChild(img);
+            overviewHeaderRow.appendChild(th);
+        });
+
         overviewTable.appendChild(overviewHeaderRow);
 
+        // Create data rows
         villages.forEach((village) => {
             const row = document.createElement("tr");
             const villageCell = document.createElement("td");
@@ -249,9 +250,6 @@
         });
     }
 
-    villageOverview.appendChild(overviewTable);
-    container.appendChild(villageOverview);
-
     // Checkbox for toggling the village overview
     const overviewCheckboxContainer = document.createElement("div");
     overviewCheckboxContainer.style.marginTop = "20px";
@@ -272,40 +270,6 @@
     overviewCheckbox.addEventListener("change", () => {
         villageOverview.style.display = overviewCheckbox.checked ? "block" : "none";
     });
-
-    // Radio buttons for categories
-    const categoryContainer = document.createElement("div");
-    categoryContainer.style.marginTop = "10px";
-    categoryContainer.style.textAlign = "center";
-
-    const troopCategories = ["own", "in_village", "outside", "transit", "total"];
-    troopCategories.forEach((category) => {
-        const radio = document.createElement("input");
-        radio.type = "radio";
-        radio.name = "category";
-        radio.id = `category-${category}`;
-        radio.value = category;
-        if (category === "own") radio.checked = true;
-
-        const label = document.createElement("label");
-        label.htmlFor = `category-${category}`;
-        label.textContent = category.replace("_", " ").toUpperCase();
-        label.style.marginRight = "10px";
-        label.style.fontWeight = "bold";
-
-        radio.style.marginRight = "5px";
-
-        radio.addEventListener("change", () => {
-            currentCategory = radio.value;
-            title.textContent = `${category.replace("_", " ").toUpperCase()} Troops`;
-            updateTroopSections();
-        });
-
-        categoryContainer.appendChild(radio);
-        categoryContainer.appendChild(label);
-    });
-
-    container.appendChild(categoryContainer);
 
     // Add Copy and Close buttons
     const buttonContainer = document.createElement("div");
@@ -345,5 +309,7 @@
     buttonContainer.appendChild(closeButton);
 
     container.appendChild(buttonContainer);
+
     document.body.appendChild(container);
+    updateTroopSections();
 })();
