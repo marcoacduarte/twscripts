@@ -63,8 +63,9 @@
     const defensiveUnits = ["unit_heavy", "unit_catapult", "unit_spear", "unit_sword", "unit_spy", "unit_archer"];
     const offensiveUnits = ["unit_light", "unit_axe", "unit_ram", "unit_marcher"];
 
-    const totals = { defensive: {}, offensive: {} };
+    let currentCategory = "own"; // Default category is "Available Units"
 
+    // Function to calculate totals for a specific category
     function calculateTotals(category) {
         const result = { defensive: {}, offensive: {} };
         villages.forEach((village) => {
@@ -96,21 +97,6 @@
             });
         });
         return result;
-    }
-
-    let currentCategory = "own"; // Default category is "Available Units"
-
-    // Function to format data for copying
-    function formatForCopying(totals) {
-        return Object.keys(totals)
-            .map(
-                (category) =>
-                    `${category.toUpperCase()}:\n` +
-                    Object.values(totals[category])
-                        .map((unit) => `${unit.label}: ${unit.count}`)
-                        .join("\n")
-            )
-            .join("\n\n");
     }
 
     // Create floating div container
@@ -199,38 +185,122 @@
     updateTroopSections();
     container.appendChild(troopSections);
 
-    // Checkbox to show/hide overview
-    const checkboxContainer = document.createElement("div");
-    checkboxContainer.style.marginTop = "20px";
+    // Checkbox for toggling the village troop overview
+    const overviewCheckboxContainer = document.createElement("div");
+    overviewCheckboxContainer.style.marginTop = "20px";
 
+    const overviewCheckbox = document.createElement("input");
+    overviewCheckbox.type = "checkbox";
+    overviewCheckbox.id = "show-overview";
+    overviewCheckbox.style.marginRight = "10px";
+
+    const overviewCheckboxLabel = document.createElement("label");
+    overviewCheckboxLabel.htmlFor = "show-overview";
+    overviewCheckboxLabel.textContent = "Show Village Troop Overview";
+
+    overviewCheckboxContainer.appendChild(overviewCheckbox);
+    overviewCheckboxContainer.appendChild(overviewCheckboxLabel);
+    container.appendChild(overviewCheckboxContainer);
+
+    // Village troop overview
+    const villageOverview = document.createElement("div");
+    villageOverview.style.marginTop = "20px";
+    villageOverview.style.textAlign = "left";
+    villageOverview.style.display = "none"; // Initially hidden
+
+    const overviewTable = document.createElement("table");
+    overviewTable.style.width = "100%";
+    overviewTable.style.borderCollapse = "collapse";
+    overviewTable.style.marginTop = "10px";
+
+    // Header Row with Unit Images
+    const overviewHeaderRow = document.createElement("tr");
+    const villageHeader = document.createElement("th");
+    villageHeader.textContent = "Village";
+    villageHeader.style.border = "1px solid #603000";
+    villageHeader.style.textAlign = "center";
+    villageHeader.style.fontWeight = "bold";
+    overviewHeaderRow.appendChild(villageHeader);
+
+    Object.keys(villages[0].units[currentCategory]).forEach((unitType) => {
+        const th = document.createElement("th");
+        th.style.border = "1px solid #603000";
+        th.style.textAlign = "center";
+        const img = document.createElement("img");
+        img.src = villages[0].units[currentCategory][unitType].imgUrl;
+        img.alt = unitType;
+        img.style.width = "20px";
+        img.style.height = "20px";
+        th.appendChild(img);
+        overviewHeaderRow.appendChild(th);
+    });
+
+    overviewTable.appendChild(overviewHeaderRow);
+
+    // Data Rows
+    villages.forEach((village) => {
+        const row = document.createElement("tr");
+        const villageCell = document.createElement("td");
+        const villageLink = document.createElement("a");
+        villageLink.href = village.link;
+        villageLink.textContent = village.name;
+        villageLink.style.textDecoration = "none";
+        villageLink.style.color = "#603000";
+        villageCell.appendChild(villageLink);
+        villageCell.style.border = "1px solid #603000";
+        row.appendChild(villageCell);
+
+        Object.keys(village.units[currentCategory]).forEach((unitType) => {
+            const unit = village.units[currentCategory][unitType];
+            const cell = document.createElement("td");
+            cell.style.border = "1px solid #603000";
+            cell.style.textAlign = "center";
+            cell.textContent = unit.count;
+            row.appendChild(cell);
+        });
+
+        overviewTable.appendChild(row);
+    });
+
+    villageOverview.appendChild(overviewTable);
+    container.appendChild(villageOverview);
+
+    // Show/Hide Overview Logic
+    overviewCheckbox.addEventListener("change", () => {
+        villageOverview.style.display = overviewCheckbox.checked ? "block" : "none";
+    });
+
+    // Radio buttons for toggling categories
+    const categoryContainer = document.createElement("div");
+    categoryContainer.style.marginTop = "20px";
     const troopCategories = ["own", "in_village", "outside", "transit", "total"];
     troopCategories.forEach((category) => {
-        const checkboxWrapper = document.createElement("div");
-        checkboxWrapper.style.marginBottom = "5px";
+        const wrapper = document.createElement("div");
+        wrapper.style.marginBottom = "5px";
 
-        const checkbox = document.createElement("input");
-        checkbox.type = "radio";
-        checkbox.name = "category";
-        checkbox.value = category;
-        checkbox.id = `category-${category}`;
-        if (category === "own") checkbox.checked = true;
+        const radio = document.createElement("input");
+        radio.type = "radio";
+        radio.name = "category";
+        radio.id = `category-${category}`;
+        radio.value = category;
+        if (category === "own") radio.checked = true;
 
         const label = document.createElement("label");
         label.htmlFor = `category-${category}`;
         label.textContent = `Show ${category.replace("_", " ").toUpperCase()}`;
 
-        checkbox.addEventListener("change", () => {
-            currentCategory = checkbox.value;
-            title.textContent = `Troops (${currentCategory.replace("_", " ").toUpperCase()})`;
+        radio.addEventListener("change", () => {
+            currentCategory = radio.value;
+            title.textContent = `${category.replace("_", " ").toUpperCase()} Troops`;
             updateTroopSections();
         });
 
-        checkboxWrapper.appendChild(checkbox);
-        checkboxWrapper.appendChild(label);
-        checkboxContainer.appendChild(checkboxWrapper);
+        wrapper.appendChild(radio);
+        wrapper.appendChild(label);
+        categoryContainer.appendChild(wrapper);
     });
 
-    container.appendChild(checkboxContainer);
+    container.appendChild(categoryContainer);
 
     // Add Copy and Close buttons
     const buttonContainer = document.createElement("div");
