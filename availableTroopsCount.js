@@ -1,4 +1,4 @@
-javascript:(function() {
+(function() {
     const currentUrl = window.location.href;
 
     // Correct URL path
