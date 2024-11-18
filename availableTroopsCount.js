@@ -92,37 +92,6 @@
         return totals;
     }
 
-    function formatForCopying(totals) {
-        const totalContent = Object.keys(totals)
-            .map(
-                type =>
-                    `${type.toUpperCase()}:\n` +
-                    Object.values(totals[type])
-                        .map(unit => `${unit.label}: ${unit.count}`)
-                        .join('\n')
-            )
-            .join('\n\n');
-
-        const villageContent = [];
-        const headers = Object.keys(villages[0].units[currentCategory]);
-
-        // Build header row for village table
-        let villageTable = `| Village Name | ${headers.map(unit => villages[0].units[currentCategory][unit].label).join(' | ')} |\n`;
-        villageTable += `|${'-'.repeat(villageTable.length - 2)}|\n`;
-
-        // Add village rows
-        villages.forEach(village => {
-            const row = `| ${village.name} | ${headers
-                .map(unit => village.units[currentCategory][unit].count)
-                .join(' | ')} |`;
-            villageContent.push(row);
-        });
-
-        villageTable += villageContent.join('\n');
-
-        return `${totalContent}\n\n---\n\n${villageTable}`;
-    }
-
     function updateTroopSections() {
         troopSections.innerHTML = "";
         const totals = calculateTotals(currentCategory);
@@ -199,9 +168,17 @@
     const copyButton = document.createElement('button');
     copyButton.textContent = 'Copy';
     copyButton.onclick = () => {
-        const totals = calculateTotals(currentCategory);
-        const content = formatForCopying(totals);
-        navigator.clipboard.writeText(content);
+        navigator.clipboard.writeText(
+            Object.keys(calculateTotals(currentCategory))
+                .map(
+                    type =>
+                        `${type.toUpperCase()}:\n` +
+                        Object.values(calculateTotals(currentCategory)[type])
+                            .map(unit => `${unit.label}: ${unit.count}`)
+                            .join('\n')
+                )
+                .join('\n\n')
+        );
         copyButton.textContent = 'Copied!';
         setTimeout(() => (copyButton.textContent = 'Copy'), 2000);
     };
