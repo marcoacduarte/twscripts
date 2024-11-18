@@ -92,6 +92,37 @@
         return totals;
     }
 
+    function formatForCopying(totals) {
+        const totalContent = Object.keys(totals)
+            .map(
+                type =>
+                    `**${type.toUpperCase()}**\n` +
+                    Object.values(totals[type])
+                        .map(unit => `${unit.label}: ${unit.count}`)
+                        .join('\n')
+            )
+            .join('\n\n');
+
+        const villageContent = [];
+        const headers = Object.keys(villages[0].units[currentCategory]);
+
+        // Build header row for village table
+        let villageTable = `| Village Name | ${headers.map(unit => villages[0].units[currentCategory][unit].label).join(' | ')} |\n`;
+        villageTable += `|${'-'.repeat(villageTable.length - 2)}|\n`;
+
+        // Add village rows
+        villages.forEach(village => {
+            const row = `| ${village.name} | ${headers
+                .map(unit => village.units[currentCategory][unit].count)
+                .join(' | ')} |`;
+            villageContent.push(row);
+        });
+
+        villageTable += villageContent.join('\n');
+
+        return `${totalContent}\n\n---\n\n${villageTable}`;
+    }
+
     function updateTroopSections() {
         troopSections.innerHTML = "";
         const totals = calculateTotals(currentCategory);
@@ -162,30 +193,51 @@
     troopSections.style.justifyContent = 'space-around';
     container.appendChild(troopSections);
 
+    // Checkbox to show/hide overview
+    const checkboxContainer = document.createElement('div');
+    checkboxContainer.style.marginTop = '20px';
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.id = 'show-overview';
+    checkbox.style.marginRight = '10px';
+
+    const checkboxLabel = document.createElement('label');
+    checkboxLabel.htmlFor = 'show-overview';
+    checkboxLabel.textContent = 'Show Village Troop Overview';
+    checkboxContainer.appendChild(checkbox);
+    checkboxContainer.appendChild(checkboxLabel);
+    container.appendChild(checkboxContainer);
+
+    checkbox.addEventListener('change', () => {
+        villageOverview.style.display = checkbox.checked ? 'block' : 'none';
+    });
+
+    // Button container
     const buttonContainer = document.createElement('div');
     buttonContainer.style.marginTop = '20px';
+    buttonContainer.style.display = 'flex';
+    buttonContainer.style.justifyContent = 'space-between';
 
     const copyButton = document.createElement('button');
     copyButton.textContent = 'Copy';
+    copyButton.classList.add('btn');
     copyButton.onclick = () => {
-        navigator.clipboard.writeText(
-            Object.keys(calculateTotals(currentCategory))
-                .map(
-                    type =>
-                        `${type.toUpperCase()}:\n` +
-                        Object.values(calculateTotals(currentCategory)[type])
-                            .map(unit => `${unit.label}: ${unit.count}`)
-                            .join('\n')
-                )
-                .join('\n\n')
-        );
+        const totals = calculateTotals(currentCategory);
+        const copyContent = formatForCopying(totals);
+        navigator.clipboard.writeText(copyContent);
         copyButton.textContent = 'Copied!';
-        setTimeout(() => (copyButton.textContent = 'Copy'), 2000);
+        setTimeout(() => {
+            copyButton.textContent = 'Copy';
+        }, 2000);
     };
 
     const closeButton = document.createElement('button');
     closeButton.textContent = 'Close';
-    closeButton.onclick = () => container.remove();
+    closeButton.classList.add('btn');
+    closeButton.onclick = () => {
+        container.remove();
+    };
 
     buttonContainer.appendChild(copyButton);
     buttonContainer.appendChild(closeButton);
@@ -193,5 +245,38 @@
 
     document.body.appendChild(container);
 
-    updateTroopSections();
+    const villageOverview = document.createElement('div');
+    villageOverview.style.marginTop = '20px';
+    villageOverview.style.textAlign = 'left';
+    villageOverview.style.display = 'none';
+
+    const overviewTable = document.createElement('table');
+    overviewTable.style.width = '100%';
+    overviewTable.style.borderCollapse = 'collapse';
+    overviewTable.style.marginTop = '10px';
+
+    const overviewHeaderRow = document.createElement('tr');
+    const villageHeader = document.createElement('th');
+    villageHeader.textContent = 'Village';
+    villageHeader.style.border = '1px solid #603000';
+    villageHeader.style.textAlign = 'center';
+    villageHeader.style.fontWeight = 'bold';
+    overviewHeaderRow.appendChild(villageHeader);
+
+    Object.keys(villages[0].units[currentCategory]).forEach(unitType => {
+        const th = document.createElement('th');
+        th.style.border = '1px solid #603000';
+        th.style.textAlign = 'center';
+        const img = document.createElement('img');
+        img.src = villages[0].units[currentCategory][unitType].imgUrl;
+        img.alt = unitType;
+        img.style.width = '20px';
+        img.style.height = '20px';
+        th.appendChild(img);
+        overviewHeaderRow.appendChild(th);
+    });
+
+    overviewTable.appendChild(overviewHeaderRow);
+    villageOverview.appendChild(overviewTable);
+    container.appendChild(villageOverview);
 })();
