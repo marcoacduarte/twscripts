@@ -5,7 +5,7 @@
     const correctScreen = "screen=overview_villages";
     const correctMode = "mode=units";
 
-    // Check if the current URL includes the correct screen and mode
+    // Redirect if not on the correct page
     if (!currentUrl.includes(correctScreen) || !currentUrl.includes(correctMode)) {
         const villageId = new URLSearchParams(window.location.search).get("village") || "0";
         window.location.href = `/game.php?village=${villageId}&screen=overview_villages&mode=units`;
@@ -65,7 +65,6 @@
 
     const totals = { defensive: {}, offensive: {} };
 
-    // Function to calculate totals for a specific category
     function calculateTotals(category) {
         const result = { defensive: {}, offensive: {} };
         villages.forEach((village) => {
@@ -100,7 +99,6 @@
     }
 
     let currentCategory = "own"; // Default category is "Available Units"
-    const totalsForDisplay = calculateTotals(currentCategory);
 
     // Function to format data for copying
     function formatForCopying(totals) {
@@ -201,28 +199,38 @@
     updateTroopSections();
     container.appendChild(troopSections);
 
-    // Checkbox to switch between categories
-    const categoryCheckboxContainer = document.createElement("div");
-    categoryCheckboxContainer.style.marginTop = "20px";
+    // Checkbox to show/hide overview
+    const checkboxContainer = document.createElement("div");
+    checkboxContainer.style.marginTop = "20px";
 
-    const categoryCheckbox = document.createElement("input");
-    categoryCheckbox.type = "checkbox";
-    categoryCheckbox.id = "switch-category";
-    categoryCheckbox.style.marginRight = "10px";
+    const troopCategories = ["own", "in_village", "outside", "transit", "total"];
+    troopCategories.forEach((category) => {
+        const checkboxWrapper = document.createElement("div");
+        checkboxWrapper.style.marginBottom = "5px";
 
-    const categoryCheckboxLabel = document.createElement("label");
-    categoryCheckboxLabel.htmlFor = "switch-category";
-    categoryCheckboxLabel.textContent = "Show Total Troops";
+        const checkbox = document.createElement("input");
+        checkbox.type = "radio";
+        checkbox.name = "category";
+        checkbox.value = category;
+        checkbox.id = `category-${category}`;
+        if (category === "own") checkbox.checked = true;
 
-    categoryCheckbox.addEventListener("change", () => {
-        currentCategory = categoryCheckbox.checked ? "total" : "own";
-        title.textContent = categoryCheckbox.checked ? "Total Troops" : "Available Units";
-        updateTroopSections();
+        const label = document.createElement("label");
+        label.htmlFor = `category-${category}`;
+        label.textContent = `Show ${category.replace("_", " ").toUpperCase()}`;
+
+        checkbox.addEventListener("change", () => {
+            currentCategory = checkbox.value;
+            title.textContent = `Troops (${currentCategory.replace("_", " ").toUpperCase()})`;
+            updateTroopSections();
+        });
+
+        checkboxWrapper.appendChild(checkbox);
+        checkboxWrapper.appendChild(label);
+        checkboxContainer.appendChild(checkboxWrapper);
     });
 
-    categoryCheckboxContainer.appendChild(categoryCheckbox);
-    categoryCheckboxContainer.appendChild(categoryCheckboxLabel);
-    container.appendChild(categoryCheckboxContainer);
+    container.appendChild(checkboxContainer);
 
     // Add Copy and Close buttons
     const buttonContainer = document.createElement("div");
@@ -232,6 +240,7 @@
 
     const copyButton = document.createElement("button");
     copyButton.textContent = "Copy";
+    copyButton.classList.add("btn");
     copyButton.onclick = () => {
         navigator.clipboard.writeText(formatForCopying(calculateTotals(currentCategory)));
         copyButton.textContent = "Copied!";
@@ -242,13 +251,14 @@
 
     const closeButton = document.createElement("button");
     closeButton.textContent = "Close";
+    closeButton.classList.add("btn");
     closeButton.onclick = () => {
         container.remove();
     };
 
     buttonContainer.appendChild(copyButton);
     buttonContainer.appendChild(closeButton);
-    container.appendChild(buttonContainer);
 
+    container.appendChild(buttonContainer);
     document.body.appendChild(container);
 })();
