@@ -5,7 +5,7 @@
     const correctScreen = "screen=overview_villages";
     const correctMode = "mode=units";
 
-    // Check if the current URL includes the correct screen and mode
+    // Redirect if not on the correct page
     if (!currentUrl.includes(correctScreen) || !currentUrl.includes(correctMode)) {
         const villageId = new URLSearchParams(window.location.search).get("village") || "0";
         window.location.href = `/game.php?village=${villageId}&screen=overview_villages&mode=units`;
@@ -36,7 +36,6 @@
 
         unitRows.forEach((unitRow, index) => {
             const category = troopCategories[index];
-            if (category !== "own") return; // Only count "own" units
 
             const unitItems = Array.from(unitRow.querySelectorAll('.unit-item'));
             const units = {};
@@ -60,44 +59,74 @@
         villages.push(villageData);
     });
 
-    // Categorize units into defensive and offensive
     const defensiveUnits = ["unit_heavy", "unit_catapult", "unit_spear", "unit_sword", "unit_spy", "unit_archer"];
     const offensiveUnits = ["unit_light", "unit_axe", "unit_ram", "unit_marcher"];
 
-    const totals = { defensive: {}, offensive: {} };
+    let currentCategory = "own"; // Default filter
 
-    villages.forEach(village => {
-        const ownUnits = village.units.own;
-        Object.keys(ownUnits).forEach(unitType => {
-            const unit = ownUnits[unitType];
+    function calculateTotals(category) {
+        const totals = { defensive: {}, offensive: {} };
 
-            if (defensiveUnits.includes(unitType)) {
-                if (!totals.defensive[unitType]) {
-                    totals.defensive[unitType] = { count: 0, imgUrl: unit.imgUrl, label: unit.label };
+        villages.forEach(village => {
+            const units = village.units[category];
+
+            Object.keys(units).forEach(unitType => {
+                const unit = units[unitType];
+
+                if (defensiveUnits.includes(unitType)) {
+                    if (!totals.defensive[unitType]) {
+                        totals.defensive[unitType] = { count: 0, imgUrl: unit.imgUrl, label: unit.label };
+                    }
+                    totals.defensive[unitType].count += unit.count;
                 }
-                totals.defensive[unitType].count += unit.count;
-            }
 
-            if (offensiveUnits.includes(unitType)) {
-                if (!totals.offensive[unitType]) {
-                    totals.offensive[unitType] = { count: 0, imgUrl: unit.imgUrl, label: unit.label };
+                if (offensiveUnits.includes(unitType)) {
+                    if (!totals.offensive[unitType]) {
+                        totals.offensive[unitType] = { count: 0, imgUrl: unit.imgUrl, label: unit.label };
+                    }
+                    totals.offensive[unitType].count += unit.count;
                 }
-                totals.offensive[unitType].count += unit.count;
-            }
+            });
         });
-    });
 
-    // Function to format data for copying
-    function formatForCopying(totals) {
-        return Object.keys(totals)
-            .map(
-                category =>
-                    `${category.toUpperCase()}:\n` +
-                    Object.values(totals[category])
-                        .map(unit => `${unit.label}: ${unit.count}`)
-                        .join('\n')
-            )
-            .join('\n\n');
+        return totals;
+    }
+
+    function updateTroopSections() {
+        troopSections.innerHTML = "";
+        const totals = calculateTotals(currentCategory);
+        troopSections.appendChild(createTroopSection("Defensive Units", totals.defensive));
+        troopSections.appendChild(createTroopSection("Offensive Units", totals.offensive));
+        updateVillageOverview(); // Update the table
+    }
+
+    function updateVillageOverview() {
+        overviewTable.innerHTML = ""; // Clear previous content
+        overviewTable.appendChild(overviewHeaderRow); // Add header row
+
+        villages.forEach(village => {
+            const row = document.createElement('tr');
+            const villageCell = document.createElement('td');
+            const villageLink = document.createElement('a');
+            villageLink.href = village.link;
+            villageLink.textContent = village.name;
+            villageLink.style.textDecoration = 'none';
+            villageLink.style.color = '#603000';
+            villageCell.appendChild(villageLink);
+            villageCell.style.border = '1px solid #603000';
+            row.appendChild(villageCell);
+
+            Object.keys(village.units[currentCategory]).forEach(unitType => {
+                const unit = village.units[currentCategory][unitType];
+                const cell = document.createElement('td');
+                cell.style.border = '1px solid #603000';
+                cell.style.textAlign = 'center';
+                cell.textContent = unit.count;
+                row.appendChild(cell);
+            });
+
+            overviewTable.appendChild(row);
+        });
     }
 
     // Create floating div container
@@ -137,12 +166,11 @@
     function createTroopSection(title, units) {
         const section = document.createElement('div');
         section.style.marginBottom = '15px';
-        section.style.width = '45%'; // Inline layout for desktop
+        section.style.width = '45%';
 
         const header = document.createElement('h3');
         header.textContent = title;
         header.style.marginBottom = '10px';
-        header.style.textAlign = 'center';
         section.appendChild(header);
 
         const troopContainer = document.createElement('div');
@@ -178,30 +206,13 @@
         return section;
     }
 
-    const defensiveSection = createTroopSection('Defensive Units', totals.defensive);
-    const offensiveSection = createTroopSection('Offensive Units', totals.offensive);
+    const defensiveSection = createTroopSection("Defensive Units", calculateTotals(currentCategory).defensive);
+    const offensiveSection = createTroopSection("Offensive Units", calculateTotals(currentCategory).offensive);
 
     troopSections.appendChild(defensiveSection);
     troopSections.appendChild(offensiveSection);
 
     container.appendChild(troopSections);
-
-    // Checkbox to show/hide overview
-    const checkboxContainer = document.createElement('div');
-    checkboxContainer.style.marginTop = '20px';
-
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.id = 'show-overview';
-    checkbox.style.marginRight = '10px';
-
-    const checkboxLabel = document.createElement('label');
-    checkboxLabel.htmlFor = 'show-overview';
-    checkboxLabel.textContent = 'Show Village Troop Overview';
-
-    checkboxContainer.appendChild(checkbox);
-    checkboxContainer.appendChild(checkboxLabel);
-    container.appendChild(checkboxContainer);
 
     // Village troop overview
     const villageOverview = document.createElement('div');
@@ -223,12 +234,12 @@
     villageHeader.style.fontWeight = 'bold';
     overviewHeaderRow.appendChild(villageHeader);
 
-    Object.keys(villages[0].units.own).forEach(unitType => {
+    Object.keys(villages[0].units[currentCategory]).forEach(unitType => {
         const th = document.createElement('th');
         th.style.border = '1px solid #603000';
         th.style.textAlign = 'center';
         const img = document.createElement('img');
-        img.src = villages[0].units.own[unitType].imgUrl;
+        img.src = villages[0].units[currentCategory][unitType].imgUrl;
         img.alt = unitType;
         img.style.width = '20px';
         img.style.height = '20px';
@@ -238,7 +249,7 @@
 
     overviewTable.appendChild(overviewHeaderRow);
 
-    // Data Rows
+    // Add rows for villages
     villages.forEach(village => {
         const row = document.createElement('tr');
         const villageCell = document.createElement('td');
@@ -251,8 +262,8 @@
         villageCell.style.border = '1px solid #603000';
         row.appendChild(villageCell);
 
-        Object.keys(village.units.own).forEach(unitType => {
-            const unit = village.units.own[unitType];
+        Object.keys(village.units[currentCategory]).forEach(unitType => {
+            const unit = village.units[currentCategory][unitType];
             const cell = document.createElement('td');
             cell.style.border = '1px solid #603000';
             cell.style.textAlign = 'center';
@@ -266,7 +277,57 @@
     villageOverview.appendChild(overviewTable);
     container.appendChild(villageOverview);
 
-    // Show/Hide Overview Logic
+    // Radio buttons for troop categories
+    const categoryContainer = document.createElement('div');
+    categoryContainer.style.marginTop = '10px';
+    categoryContainer.style.textAlign = 'center';
+
+    const troopCategories = ["own", "in_village", "outside", "transit", "total"];
+    troopCategories.forEach(category => {
+        const radio = document.createElement('input');
+        radio.type = 'radio';
+        radio.name = 'category';
+        radio.id = `category-${category}`;
+        radio.value = category;
+        if (category === currentCategory) radio.checked = true;
+
+        const label = document.createElement('label');
+        label.htmlFor = `category-${category}`;
+        label.textContent = category.replace("_", " ").toUpperCase();
+        label.style.marginRight = '10px';
+        label.style.fontWeight = 'bold';
+
+        radio.style.marginRight = '5px';
+
+        radio.addEventListener('change', () => {
+            currentCategory = radio.value;
+            title.textContent = `${category.replace("_", " ").toUpperCase()} Troops`;
+            updateTroopSections();
+        });
+
+        categoryContainer.appendChild(radio);
+        categoryContainer.appendChild(label);
+    });
+
+    container.appendChild(categoryContainer);
+
+    // Add checkbox to show/hide overview
+    const checkboxContainer = document.createElement('div');
+    checkboxContainer.style.marginTop = '20px';
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.id = 'show-overview';
+    checkbox.style.marginRight = '10px';
+
+    const checkboxLabel = document.createElement('label');
+    checkboxLabel.htmlFor = 'show-overview';
+    checkboxLabel.textContent = 'Show Village Troop Overview';
+
+    checkboxContainer.appendChild(checkbox);
+    checkboxContainer.appendChild(checkboxLabel);
+    container.appendChild(checkboxContainer);
+
     checkbox.addEventListener('change', () => {
         villageOverview.style.display = checkbox.checked ? 'block' : 'none';
     });
@@ -277,19 +338,27 @@
     buttonContainer.style.display = 'flex';
     buttonContainer.style.justifyContent = 'space-between';
 
-    // Add "Copy" button
     const copyButton = document.createElement('button');
     copyButton.textContent = 'Copy';
     copyButton.classList.add('btn');
     copyButton.onclick = () => {
-        navigator.clipboard.writeText(formatForCopying(totals));
+        navigator.clipboard.writeText(
+            Object.keys(calculateTotals(currentCategory))
+                .map(
+                    category =>
+                        `${category.toUpperCase()}:\n` +
+                        Object.values(calculateTotals(currentCategory)[category])
+                            .map(unit => `${unit.label}: ${unit.count}`)
+                            .join('\n')
+                )
+                .join('\n\n')
+        );
         copyButton.textContent = 'Copied!';
         setTimeout(() => {
             copyButton.textContent = 'Copy';
         }, 2000);
     };
 
-    // Add "Close" button
     const closeButton = document.createElement('button');
     closeButton.textContent = 'Close';
     closeButton.classList.add('btn');
@@ -301,5 +370,6 @@
     buttonContainer.appendChild(closeButton);
 
     container.appendChild(buttonContainer);
+
     document.body.appendChild(container);
 })();
