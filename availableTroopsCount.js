@@ -8,7 +8,7 @@
     // Check if the current URL includes the correct screen and mode
     if (!currentUrl.includes(correctScreen) || !currentUrl.includes(correctMode)) {
         const villageId = new URLSearchParams(window.location.search).get("village") || "0";
-        window.location.href = /game.php?village=${villageId}&screen=overview_villages&mode=units;
+        window.location.href = "/game.php?village=${villageId}&screen=overview_villages&mode=units";
         return;
     }
 
