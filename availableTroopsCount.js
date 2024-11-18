@@ -18,10 +18,6 @@
         return;
     }
 
-    const categories = Array.from(
-        table.querySelectorAll('tbody > tr:nth-child(1) > td:not([rowspan])')
-    ).map(td => td.textContent.trim().toLowerCase());
-
     const villages = [];
     const rows = table.querySelectorAll('tbody');
 
@@ -35,10 +31,12 @@
         villageData.link = headerRow.querySelector('a').href;
 
         const unitRows = row.querySelectorAll('tr');
+        const troopCategories = ["own", "in_village", "outside", "transit", "total"];
         villageData.units = {};
 
         unitRows.forEach((unitRow, index) => {
-            const category = categories[index];
+            const category = troopCategories[index];
+            if (category !== "own") return; // Only count "own" units
 
             const unitItems = Array.from(unitRow.querySelectorAll('.unit-item'));
             const units = {};
@@ -65,7 +63,7 @@
     const defensiveUnits = ["unit_heavy", "unit_catapult", "unit_spear", "unit_sword", "unit_spy", "unit_archer"];
     const offensiveUnits = ["unit_light", "unit_axe", "unit_ram", "unit_marcher"];
 
-    let currentCategory = categories[0]; // Default filter
+    let currentCategory = "own"; // Default filter
 
     function calculateTotals(category) {
         const totals = { defensive: {}, offensive: {} };
@@ -93,30 +91,6 @@
         });
 
         return totals;
-    }
-
-    function formatCopyContent(totals, category) {
-        const totalContent = Object.keys(totals)
-            .map(
-                troopType =>
-                    `**${troopType.toUpperCase()}**\n` +
-                    Object.values(totals[troopType])
-                        .map(unit => `${unit.label}: ${unit.count}`)
-                        .join('\n')
-            )
-            .join('\n\n');
-
-        const villageContent = villages
-            .map(village => {
-                const units = village.units[category];
-                return `**${village.name}** (${category.toUpperCase()})\n` +
-                    Object.values(units)
-                        .map(unit => `${unit.label}: ${unit.count}`)
-                        .join('\n');
-            })
-            .join('\n\n');
-
-        return `${totalContent}\n\n---\n\n${villageContent}`;
     }
 
     function updateTroopSections() {
@@ -226,7 +200,7 @@
     copyButton.textContent = 'Copy';
     copyButton.onclick = () => {
         const totals = calculateTotals(currentCategory);
-        const copyContent = formatCopyContent(totals, currentCategory);
+        const copyContent = formatForCopying(totals);
         navigator.clipboard.writeText(copyContent);
         copyButton.textContent = 'Copied!';
         setTimeout(() => {
