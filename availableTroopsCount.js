@@ -1,11 +1,10 @@
 (function () {
     const currentUrl = window.location.href;
 
-    // Correct URL path
+    // Redirect if not on the correct page
     const correctScreen = "screen=overview_villages";
     const correctMode = "mode=units";
 
-    // Redirect if not on the correct page
     if (!currentUrl.includes(correctScreen) || !currentUrl.includes(correctMode)) {
         const villageId = new URLSearchParams(window.location.search).get("village") || "0";
         window.location.href = `/game.php?village=${villageId}&screen=overview_villages&mode=units`;
@@ -63,9 +62,9 @@
     const defensiveUnits = ["unit_heavy", "unit_catapult", "unit_spear", "unit_sword", "unit_spy", "unit_archer"];
     const offensiveUnits = ["unit_light", "unit_axe", "unit_ram", "unit_marcher"];
 
-    let currentCategory = "own"; // Default category is "Available Units"
+    let currentCategory = "own";
 
-    // Function to calculate totals for a specific category
+    // Calculate totals for a specific category
     function calculateTotals(category) {
         const result = { defensive: {}, offensive: {} };
         villages.forEach((village) => {
@@ -180,8 +179,11 @@
         const totals = calculateTotals(currentCategory);
         troopSections.appendChild(createTroopSection("Defensive Units", totals.defensive));
         troopSections.appendChild(createTroopSection("Offensive Units", totals.offensive));
-        updateVillageOverview(); // Update the village overview table as well
+        updateVillageOverview(); // Also update the village overview
     }
+
+    updateTroopSections();
+    container.appendChild(troopSections);
 
     // Village troop overview
     const villageOverview = document.createElement("div");
@@ -194,37 +196,33 @@
     overviewTable.style.borderCollapse = "collapse";
     overviewTable.style.marginTop = "10px";
 
-    villageOverview.appendChild(overviewTable);
-    container.appendChild(villageOverview);
+    const overviewHeaderRow = document.createElement("tr");
+    const villageHeader = document.createElement("th");
+    villageHeader.textContent = "Village";
+    villageHeader.style.border = "1px solid #603000";
+    villageHeader.style.textAlign = "center";
+    villageHeader.style.fontWeight = "bold";
+    overviewHeaderRow.appendChild(villageHeader);
+
+    Object.keys(villages[0].units[currentCategory]).forEach((unitType) => {
+        const th = document.createElement("th");
+        th.style.border = "1px solid #603000";
+        th.style.textAlign = "center";
+        const img = document.createElement("img");
+        img.src = villages[0].units[currentCategory][unitType].imgUrl;
+        img.alt = unitType;
+        img.style.width = "20px";
+        img.style.height = "20px";
+        th.appendChild(img);
+        overviewHeaderRow.appendChild(th);
+    });
+
+    overviewTable.appendChild(overviewHeaderRow);
 
     function updateVillageOverview() {
-        overviewTable.innerHTML = ""; // Clear previous content
+        overviewTable.innerHTML = ""; // Clear content
+        overviewTable.appendChild(overviewHeaderRow); // Add header row
 
-        // Create header row
-        const overviewHeaderRow = document.createElement("tr");
-        const villageHeader = document.createElement("th");
-        villageHeader.textContent = "Village";
-        villageHeader.style.border = "1px solid #603000";
-        villageHeader.style.textAlign = "center";
-        villageHeader.style.fontWeight = "bold";
-        overviewHeaderRow.appendChild(villageHeader);
-
-        Object.keys(villages[0].units[currentCategory]).forEach((unitType) => {
-            const th = document.createElement("th");
-            th.style.border = "1px solid #603000";
-            th.style.textAlign = "center";
-            const img = document.createElement("img");
-            img.src = villages[0].units[currentCategory][unitType].imgUrl;
-            img.alt = unitType;
-            img.style.width = "20px";
-            img.style.height = "20px";
-            th.appendChild(img);
-            overviewHeaderRow.appendChild(th);
-        });
-
-        overviewTable.appendChild(overviewHeaderRow);
-
-        // Create data rows
         villages.forEach((village) => {
             const row = document.createElement("tr");
             const villageCell = document.createElement("td");
@@ -250,7 +248,10 @@
         });
     }
 
-    // Checkbox for toggling the village overview
+    villageOverview.appendChild(overviewTable);
+    container.appendChild(villageOverview);
+
+    // Add checkboxes
     const overviewCheckboxContainer = document.createElement("div");
     overviewCheckboxContainer.style.marginTop = "20px";
 
@@ -270,6 +271,40 @@
     overviewCheckbox.addEventListener("change", () => {
         villageOverview.style.display = overviewCheckbox.checked ? "block" : "none";
     });
+
+    // Radio buttons for troop categories
+    const categoryContainer = document.createElement("div");
+    categoryContainer.style.marginTop = "10px";
+    categoryContainer.style.textAlign = "center";
+
+    const troopCategories = ["own", "in_village", "outside", "transit", "total"];
+    troopCategories.forEach((category) => {
+        const radio = document.createElement("input");
+        radio.type = "radio";
+        radio.name = "category";
+        radio.id = `category-${category}`;
+        radio.value = category;
+        if (category === "own") radio.checked = true;
+
+        const label = document.createElement("label");
+        label.htmlFor = `category-${category}`;
+        label.textContent = category.replace("_", " ").toUpperCase();
+        label.style.marginRight = "10px";
+        label.style.fontWeight = "bold";
+
+        radio.style.marginRight = "5px";
+
+        radio.addEventListener("change", () => {
+            currentCategory = radio.value;
+            title.textContent = `${category.replace("_", " ").toUpperCase()} Troops`;
+            updateTroopSections();
+        });
+
+        categoryContainer.appendChild(radio);
+        categoryContainer.appendChild(label);
+    });
+
+    container.appendChild(categoryContainer);
 
     // Add Copy and Close buttons
     const buttonContainer = document.createElement("div");
@@ -311,5 +346,4 @@
     container.appendChild(buttonContainer);
 
     document.body.appendChild(container);
-    updateTroopSections();
 })();
