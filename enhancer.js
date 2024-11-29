@@ -1,5 +1,10 @@
 // Hungarian translation provided by =Krumpli=
 
+let curVillage = null;
+let farmBusy = false;
+let autoSendActive = false;
+let autoSendPaused = false;
+let pauseButton;
 
 ScriptAPI.register('FarmGod', true, 'Warre', 'nl.tribalwars@coma.innogames.de');
 
@@ -346,12 +351,12 @@ window.FarmGod.Translation = (function () {
 window.FarmGod.Main = (function (Library, Translation) {
   const lib = Library;
   const t = Translation.get();
-  let curVillage = null;
-  let farmBusy = false;
 
   const init = function () {
     if (game_data.features.Premium.active && game_data.features.FarmAssistent.active) {
       if (game_data.screen == 'am_farm') {
+        addPauseButtonToPage(); // Add the Pause button to the page
+
         $.when(buildOptions()).then((html) => {
           Dialog.show('FarmGod', html);
 
@@ -387,12 +392,16 @@ window.FarmGod.Main = (function (Library, Translation) {
             });
           });
 
-          // Event handler for the new "Send" button
+          // Event handler for the "Send" button in the popup
           $('.sendButton').off('click').on('click', async () => {
             let sendButton = $('.sendButton');
             // Disable the button and add the 'btn-disable' class
             sendButton.prop('disabled', true);
             sendButton.addClass('btn-disable');
+
+            autoSendActive = true;
+            autoSendPaused = false;
+            pauseButton.innerText = "Pause";
 
             let optionGroup = parseInt($('.optionGroup').val());
             let optionDistance = parseFloat($('.optionDistance').val());
@@ -423,6 +432,7 @@ window.FarmGod.Main = (function (Library, Translation) {
               UI.ErrorMessage(t.table.noFarmsPlanned);
               sendButton.prop('disabled', false);
               sendButton.removeClass('btn-disable');
+              autoSendActive = false;
               return;
             }
 
@@ -437,11 +447,33 @@ window.FarmGod.Main = (function (Library, Translation) {
             let farmGodButtons = $('.farmGod_icon');
 
             async function clickButtonSequentially(index) {
-              if (index >= farmGodButtons.length) {
-                // Re-enable the button after all buttons are clicked
+              if (!autoSendActive) {
+                // Autosend is stopped, reset and enable the Send button
                 sendButton.prop('disabled', false);
                 sendButton.removeClass('btn-disable');
                 return;
+              }
+
+              if (index >= farmGodButtons.length) {
+                // All buttons clicked, reset and enable the Send button
+                autoSendActive = false;
+                sendButton.prop('disabled', false);
+                sendButton.removeClass('btn-disable');
+                pauseButton.innerText = "Pause";
+                return;
+              }
+
+              // Check if autosend is paused
+              if (autoSendPaused) {
+                // Wait until autosend is resumed
+                await new Promise(resolve => {
+                  let interval = setInterval(() => {
+                    if (!autoSendPaused) {
+                      clearInterval(interval);
+                      resolve();
+                    }
+                  }, 100);
+                });
               }
 
               let button = farmGodButtons.eq(index);
@@ -466,6 +498,8 @@ window.FarmGod.Main = (function (Library, Translation) {
 
               // Delay before clicking the next button
               await new Promise(resolve => setTimeout(resolve, 100));
+
+              // Proceed to next button
               clickButtonSequentially(index + 1);
             }
 
@@ -479,6 +513,39 @@ window.FarmGod.Main = (function (Library, Translation) {
       }
     } else {
       UI.ErrorMessage(t.missingFeatures);
+    }
+  };
+
+  // Function to add the Pause button to the page
+  const addPauseButtonToPage = function () {
+    const table = document.querySelector('table.vis');
+    if (table) {
+      const tableCell = document.querySelector('td[rowspan="4"]');
+      if (tableCell) {
+        // Create the new button
+        pauseButton = document.createElement('button');
+        pauseButton.innerText = "Pause";
+        pauseButton.className = "btn"; // Apply the predefined "btn" class
+
+        // Append the new button to the <div> inside the <td> element
+        const buttonContainer = tableCell.querySelector('.vis_item');
+        if (buttonContainer) {
+          buttonContainer.appendChild(pauseButton);
+
+          // Set up event handler for the pause button
+          pauseButton.addEventListener('click', function () {
+            if (autoSendActive) {
+              autoSendPaused = !autoSendPaused;
+              pauseButton.innerText = autoSendPaused ? "Resume" : "Pause";
+            } else {
+              UI.InfoMessage("No autosend process is active.");
+            }
+          });
+        }
+      }
+    } else {
+      // Retry adding the button if the table is not found
+      setTimeout(addPauseButtonToPage, 100);
     }
   };
 
@@ -552,7 +619,6 @@ window.FarmGod.Main = (function (Library, Translation) {
     });
   };
 
-
   const buildGroupSelect = function (id) {
     return $.get(TribalWars.buildURL('GET', 'groups', { 'ajax': 'load_group_menu' })).then((groups) => {
       let html = `<select class="optionGroup">`;
@@ -570,6 +636,7 @@ window.FarmGod.Main = (function (Library, Translation) {
       return html;
     });
   };
+
 
   const buildTable = function (plan) {
     let html = `<div class="vis farmGodContent"><h4>FarmGod</h4><table class="vis" width="100%">
