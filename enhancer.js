@@ -350,62 +350,206 @@ window.FarmGod.Main = (function (Library, Translation) {
   let farmBusy = false;
 
   const init = function () {
-  if (game_data.features.Premium.active && game_data.features.FarmAssistent.active) {
-    if (game_data.screen == 'am_farm') {
-      $.when(buildOptions()).then((html) => {
-        Dialog.show('FarmGod', html);
+    if (game_data.features.Premium.active && game_data.features.FarmAssistent.active) {
+      if (game_data.screen == 'am_farm') {
+        $.when(buildOptions()).then((html) => {
+          Dialog.show('FarmGod', html);
 
-        $('.optionButton').off('click').on('click', () => {
-          // Existing code for planning farms
-          let optionGroup = parseInt($('.optionGroup').val());
-          let optionDistance = parseFloat($('.optionDistance').val());
-          let optionTime = parseFloat($('.optionTime').val());
-          let optionLosses = $('.optionLosses').prop('checked');
-          let optionMaxloot = $('.optionMaxloot').prop('checked');
-          let optionNewbarbs = $('.optionNewbarbs').prop('checked') || false;
+          $('.optionButton').off('click').on('click', () => {
+            let optionGroup = parseInt($('.optionGroup').val());
+            let optionDistance = parseFloat($('.optionDistance').val());
+            let optionTime = parseFloat($('.optionTime').val());
+            let optionLosses = $('.optionLosses').prop('checked');
+            let optionMaxloot = $('.optionMaxloot').prop('checked');
+            let optionNewbarbs = $('.optionNewbarbs').prop('checked') || false;
 
-          localStorage.setItem(
-            'farmGod_options',
-            JSON.stringify({
+            localStorage.setItem('farmGod_options', JSON.stringify({
               optionGroup: optionGroup,
               optionDistance: optionDistance,
               optionTime: optionTime,
               optionLosses: optionLosses,
               optionMaxloot: optionMaxloot,
               optionNewbarbs: optionNewbarbs
-            })
-          );
+            }));
 
-          $('.optionsContent').html(UI.Throbber[0].outerHTML + '<br><br>');
-          getData(optionGroup, optionNewbarbs, optionLosses).then((data) => {
+            $('.optionsContent').html(UI.Throbber[0].outerHTML + '<br><br>');
+            getData(optionGroup, optionNewbarbs, optionLosses).then((data) => {
+              Dialog.close();
+
+              let plan = createPlanning(optionDistance, optionTime, optionMaxloot, data);
+              $('.farmGodContent').remove();
+              $('#am_widget_Farm').first().before(buildTable(plan.farms));
+
+              bindEventHandlers();
+              UI.InitProgressBars();
+              UI.updateProgressBar($('#FarmGodProgessbar'), 0, plan.counter);
+              $('#FarmGodProgessbar').data('current', 0).data('max', plan.counter);
+            });
+          });
+
+          // Event handler for the new "Send" button
+          $('.sendButton').off('click').on('click', async () => {
+            let sendButton = $('.sendButton');
+            // Disable the button and add the 'btn-disable' class
+            sendButton.prop('disabled', true);
+            sendButton.addClass('btn-disable');
+
+            let optionGroup = parseInt($('.optionGroup').val());
+            let optionDistance = parseFloat($('.optionDistance').val());
+            let optionTime = parseFloat($('.optionTime').val());
+            let optionLosses = $('.optionLosses').prop('checked');
+            let optionMaxloot = $('.optionMaxloot').prop('checked');
+            let optionNewbarbs = $('.optionNewbarbs').prop('checked') || false;
+
+            localStorage.setItem('farmGod_options', JSON.stringify({
+              optionGroup: optionGroup,
+              optionDistance: optionDistance,
+              optionTime: optionTime,
+              optionLosses: optionLosses,
+              optionMaxloot: optionMaxloot,
+              optionNewbarbs: optionNewbarbs
+            }));
+
+            $('.optionsContent').html(UI.Throbber[0].outerHTML + '<br><br>');
+
+            // Get data and create plan
+            let data = await getData(optionGroup, optionNewbarbs, optionLosses);
             Dialog.close();
 
             let plan = createPlanning(optionDistance, optionTime, optionMaxloot, data);
+
+            // If no farms can be sent
+            if ($.isEmptyObject(plan.farms)) {
+              UI.ErrorMessage(t.table.noFarmsPlanned);
+              sendButton.prop('disabled', false);
+              sendButton.removeClass('btn-disable');
+              return;
+            }
+
+            // Initialize progress bar
             $('.farmGodContent').remove();
             $('#am_widget_Farm').first().before(buildTable(plan.farms));
-
-            bindEventHandlers();
             UI.InitProgressBars();
             UI.updateProgressBar($('#FarmGodProgessbar'), 0, plan.counter);
             $('#FarmGodProgessbar').data('current', 0).data('max', plan.counter);
+
+            // Collect all FarmGod buttons
+            let farmGodButtons = $('.farmGod_icon');
+
+            async function clickButtonSequentially(index) {
+              if (index >= farmGodButtons.length) {
+                // Re-enable the button after all buttons are clicked
+                sendButton.prop('disabled', false);
+                sendButton.removeClass('btn-disable');
+                return;
+              }
+
+              let button = farmGodButtons.eq(index);
+
+              // Wait for any previous sendFarm calls to complete
+              await new Promise(resolve => {
+                let interval = setInterval(() => {
+                  if (!farmBusy) {
+                    clearInterval(interval);
+                    resolve();
+                  }
+                }, 50);
+              });
+
+              // Trigger sendFarm function
+              sendFarm(button);
+
+              // Wait until the button is removed from the DOM
+              while ($.contains(document, button[0])) {
+                await new Promise(resolve => setTimeout(resolve, 50));
+              }
+
+              // Delay before clicking the next button
+              await new Promise(resolve => setTimeout(resolve, 100));
+              clickButtonSequentially(index + 1);
+            }
+
+            clickButtonSequentially(0);
           });
-        });
 
-        // Event handler for the new "Send" button
-        $('.sendButton').off('click').on('click', () => {
-          // Code to handle the "Send" button click
-          alert('Send button clicked');
+          document.querySelector('.optionButton').focus();
         });
-
-        document.querySelector('.optionButton').focus();
-      });
+      } else {
+        location.href = game_data.link_base_pure + 'am_farm';
+      }
     } else {
-      location.href = game_data.link_base_pure + 'am_farm';
+      UI.ErrorMessage(t.missingFeatures);
     }
-  } else {
-    UI.ErrorMessage(t.missingFeatures);
-  }
-};
+  };
+
+  const bindEventHandlers = function () {
+    $('.farmGod_icon').off('click').on('click', function () {
+      if (game_data.market != 'nl' || $(this).data('origin') == curVillage) {
+        sendFarm($(this));
+      } else {
+        UI.ErrorMessage(t.messages.villageError);
+      }
+    });
+
+    $(document).off('keydown').on('keydown', (event) => {
+      if ((event.keyCode || event.which) == 13) {
+        $('.farmGod_icon').first().trigger('click');
+      }
+    });
+
+    $('.switchVillage').off('click').on('click', function () {
+      curVillage = $(this).data('id');
+      UI.SuccessMessage(t.messages.villageChanged);
+      $(this).closest('tr').remove();
+    });
+  };
+
+  const buildOptions = function () {
+    let options = JSON.parse(localStorage.getItem('farmGod_options')) || {
+      optionGroup: 0,
+      optionDistance: 25,
+      optionTime: 10,
+      optionLosses: false,
+      optionMaxloot: true,
+      optionNewbarbs: true
+    };
+    let checkboxSettings = [false, true, true, true, false];
+    let checkboxError = $('#plunder_list_filters').find('input[type="checkbox"]').map((i, el) => {
+      return $(el).prop('checked') != checkboxSettings[i];
+    }).get().includes(true);
+    let $templateRows = $('form[action*="action=edit_all"]')
+      .find('input[type="hidden"][name*="template"]')
+      .closest('tr');
+    let templateError =
+      $templateRows.first().find('td').last().text().toNumber() >=
+      $templateRows.last().find('td').last().text().toNumber();
+
+    return $.when(buildGroupSelect(options.optionGroup)).then((groupSelect) => {
+      return `<style>#popup_box_FarmGod{text-align:center;width:550px;}</style>
+              <h3>${t.options.title}</h3><br><div class="optionsContent">
+              ${
+                checkboxError || templateError
+                  ? `<div class="info_box" style="line-height: 15px;font-size:10px;text-align:left;"><p style="margin:0px 5px;">${t.options.warning}<br><img src="${t.options.filterImage}" style="width:100%;"></p></div><br>`
+                  : ``
+              }
+              <div style="width:90%;margin:auto;background: url('graphic/index/main_bg.jpg') 100% 0% #E3D5B3;border: 1px solid #7D510F;border-collapse: separate !important;border-spacing: 0px !important;">
+                <table class="vis" style="width:100%;text-align:left;font-size:11px;">
+                  <tr><td>${t.options.group}</td><td>${groupSelect}</td></tr>
+                  <tr><td>${t.options.distance}</td><td><input type="text" size="5" class="optionDistance" value="${options.optionDistance}"></td></tr>
+                  <tr><td>${t.options.time}</td><td><input type="text" size="5" class="optionTime" value="${options.optionTime}"></td></tr>
+                  <tr><td>${t.options.losses}</td><td><input type="checkbox" class="optionLosses" ${options.optionLosses ? 'checked' : ''}></td></tr>
+                  <tr><td>${t.options.maxloot}</td><td><input type="checkbox" class="optionMaxloot" ${options.optionMaxloot ? 'checked' : ''}></td></tr>
+                  ${
+                    game_data.market == 'nl'
+                      ? `<tr><td>${t.options.newbarbs}</td><td><input type="checkbox" class="optionNewbarbs" ${options.optionNewbarbs ? 'checked' : ''}></td></tr>`
+                      : ''
+                  }
+                </table>
+              </div><br>
+              <input type="button" class="btn optionButton" value="${t.options.button}">
+              <input type="button" class="btn sendButton" value="Send">
+              </div>`;
+    });
 
 
   const bindEventHandlers = function () {
