@@ -158,6 +158,76 @@ window.FarmGod.Library = (function () {
   };
 })();
 
+window.FarmGod.Translation = (function () {
+  const msg = {
+    nl_NL: {
+      missingFeatures: 'Script vereist een premium account en farm assistent!',
+      options: {
+        title: 'FarmGod Opties',
+        warning: '<b>Waarschuwingen:</b><br>- Zorg dat A is ingesteld als je standaard microfarm en B als een grotere microfarm<br>- Zorg dat de farm filters correct zijn ingesteld voor je het script gebruikt',
+        filterImage: 'https://higamy.github.io/TW/Scripts/Assets/farmGodFilters.png',
+        group: 'Uit welke groep moet er gefarmd worden:',
+        distance: 'Maximaal aantal velden dat farms mogen lopen:',
+        time: 'Hoe veel tijd in minuten moet er tussen farms zitten:',
+        losses: 'Verstuur farm naar dorpen met gedeeltelijke verliezen:',
+        maxloot: 'Verstuur een B farm als de buit vorige keer vol was:',
+        newbarbs: 'Voeg nieuwe barbarendorpen toe om te farmen:',
+        button: 'Plan farms',
+      },
+      table: {
+        noFarmsPlanned: 'Er kunnen met de opgegeven instellingen geen farms verstuurd worden.',
+        origin: 'Oorsprong',
+        target: 'Doel',
+        fields: 'Velden',
+        farm: 'Farm',
+        goTo: 'Ga naar',
+      },
+      messages: {
+        villageChanged: 'Succesvol van dorp veranderd!',
+        villageError: 'Alle farms voor het huidige dorp zijn reeds verstuurd!',
+        sendError: 'Error: farm niet verstuurd!',
+      },
+    },
+    int: {
+      missingFeatures: 'Script requires a premium account and loot assistant!',
+      options: {
+        title: 'FarmGod Options',
+        warning: '<b>Warning:</b><br>- Make sure A is set as your default microfarm and B as a larger microfarm<br>- Make sure the farm filters are set correctly before using the script',
+        filterImage: 'https://higamy.github.io/TW/Scripts/Assets/farmGodFilters.png',
+        group: 'Send farms from group:',
+        distance: 'Maximum fields for farms:',
+        time: 'How much time in minutes should there be between farms:',
+        losses: 'Send farm to villages with partial losses:',
+        maxloot: 'Send a B farm if the last loot was full:',
+        newbarbs: 'Add new barbs to farm:',
+        button: 'Plan farms',
+      },
+      table: {
+        noFarmsPlanned: 'No farms can be sent with the specified settings.',
+        origin: 'Origin',
+        target: 'Target',
+        fields: 'Fields',
+        farm: 'Farm',
+        goTo: 'Go to',
+      },
+      messages: {
+        villageChanged: 'Successfully changed village!',
+        villageError: 'All farms for the current village have been sent!',
+        sendError: 'Error: farm not sent!',
+      },
+    },
+  };
+
+  const get = function () {
+    const lang = game_data.locale in msg ? game_data.locale : 'int';
+    return msg[lang];
+  };
+
+  return {
+    get,
+  };
+})();
+
 window.FarmGod.Main = (function (Library, Translation) {
   const lib = Library;
   const t = Translation.get();
