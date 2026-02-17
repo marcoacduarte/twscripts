@@ -1,4 +1,14 @@
 javascript:
+// Variáveis partilhadas no topo — acessíveis por todas as funções e callbacks do DOM
+var coords=[];
+var coordsUrl="";
+var minArrival=new Date();
+var maxArrival=new Date(minArrival.getTime() + 1000*60*60);
+var arrivalUrl="";
+var unitPreference={};
+var mode="manual";
+var unitNames=[];
+
 //FUNCTIONS
 
 //"logic" functions
@@ -487,27 +497,10 @@ else if (game_data.screen == 'place') {
 		}
 	}
 	else{
-		var coords=[];
-		var coordsUrl="";
-		var minArrival=new Date();
-		var maxArrival=new Date(minArrival.getTime() + 1000*60*60);
-		var arrivalUrl="";
-		var unitPreference={};
-		var mode="manual";
-		var unitNames=[];
 		openUI();
 	}
 }
 
 else{
-	var coords=[];
-	var coordsUrl="";
-	var minArrival=new Date();
-	var maxArrival=new Date(minArrival.getTime() + 1000*60*60);
-	var arrivalUrl="";
-	var unitPreference={};
-	var mode="manual";
-	var unitNames=[];
-
 	openUI();
 }
