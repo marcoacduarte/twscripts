@@ -108,6 +108,7 @@ function getGoodCoords(coords,unit,minTime,maxTime){
 	var servertime = window.$("#serverTime").html().match(/\d+/g);
 	var serverDate = win.$("#serverDate").html().match(/\d+/g);
 	serverTime = new Date(serverDate[1]+"/"+serverDate[0]+"/"+serverDate[2]+" "+servertime.join(":"));
+	//coords = coords.split(',');
 	closest=60*500;
 	far=0;
 	console.log(coords)
@@ -189,8 +190,28 @@ function alreadySent(myCoords,target){
 
 function fillInTroops(troopCount, troopPreferences, fakeLimit){
     troopArray = troopPreferences;
+    //find the slowest selected unit
     var keys=Object.keys(troopArray);
     slowest=["spy"];
+    
+    // ⭐ MODIFICAÇÃO: Verificar se apenas spies está selecionado
+    var selectedUnits = [];
+    for (i=0;i<keys.length;i++){
+    	if(troopArray[keys[i]]){
+    		selectedUnits.push(keys[i]);
+    	}
+    }
+    
+    // Se apenas spy está selecionado, enviar apenas 5
+    if(selectedUnits.length === 1 && selectedUnits[0] === "spy"){
+    	troopsToSend=new Array(keys.length).fill(0);
+    	troopsToSend[keys.indexOf("spy")]=5;
+    	for(i=0;i<troopsToSend.length;i++){
+    		document.forms[0][keys[i]].value = troopsToSend[i];
+    	}
+    	return "spy";
+    }
+    
     for (i=0;i<keys.length;i++){
     	if(troopArray[keys[i]] && troopCount[keys[i]]>0){
     		if(getSpeed(keys[i])>getSpeed(slowest[0])){
@@ -212,6 +233,7 @@ function fillInTroops(troopCount, troopPreferences, fakeLimit){
     troopsToSend[keys.indexOf(slowest[0])]++;
     fakePopNeeded-=getPop(slowest[0]);
 
+    
     fasterBarrackTroops=findFasterBuild(troopArray)[0];
     fasterStableTroops=findFasterBuild(troopArray)[1];
     fasterWorkshopTroops=findFasterBuild(troopArray)[2];
@@ -237,9 +259,11 @@ function fillInTroops(troopCount, troopPreferences, fakeLimit){
     		fasterStableTroops.shift();
     	}
     	
+    	
     	if(fakePopNeeded<=0 || (fasterBarrackTroops.length<1 && fasterStableTroops.length<1)){
     		k=-1;
     	}
+    	
     }
    if(fakePopNeeded<=0){
    	for(i=0;i<troopsToSend.length;i++){
@@ -251,9 +275,11 @@ function fillInTroops(troopCount, troopPreferences, fakeLimit){
    	alert("no troops to fake");
    	return null;
    }
+   
 }
 
 
+//find the unit whith the fastest base build time
 function findFasterBuild(troopArray){
 	var keys=Object.keys(troopArray);
 	var barracks=[];
@@ -305,7 +331,7 @@ function setByUrl(){
 }
 
 function getCoords(){
-	coords=document.getElementById("coords").value.match(/\d{1,3}\|\d{1,3}/g);
+	coords=document.getElementById("coords").value.match(/\d\d\d\|\d\d\d/g);
 }
 
 function getCoordsUrl(){
@@ -345,6 +371,7 @@ function saveSettings(){
 		}
 		UI.SuccessMessage('Settings saved', 3000);
 	}
+	
 }
 
 function reset(){
@@ -387,6 +414,7 @@ function openUI(){
 		}
 	}
 
+
 	for (var i = 0; i < game_data.units.length; i++) {
 		if (game_data.units[i] != "militia" && game_data.units[i] != "knigth") {
 			unitNames.push(game_data.units[i]);
@@ -402,7 +430,7 @@ function openUI(){
 		}
 	}
 
- 	var html = '<head></head><body><h1>Smart fake script</h1><form><fieldset><legend>Data Source</legend><h2>Select Data Source</h2><p><input type="radio" id="manual" name="source" value="manual" checked="true" onchange="setManual()">Insert manually targets and landing time</input></p><p><input type="radio" id="tribe" name="source" value="url" onchange="setByUrl()">Get targets and landing time from URL</input></p></fieldset><fieldset><legend>Manual settings</legend><p><h2>Coords to fake</h2><label>Coords:</label><textarea id="coords" rows="5" cols="70" placeholder="Insert the coords to fake" onchange="getCoords()"></textarea></p><p><h2>Arrival date</h2><label>Fakes will land between </label><input type="datetime-local" id="minDate" value="'+dateToIsoFormat(minArrival)+'" onchange="getArrival()"><label> and </label><input type="datetime-local" id="maxDate" value="'+dateToIsoFormat(maxArrival)+'" onchange="getArrival()"></input></p></fieldset><fieldset><legend>Tribe settings</legend><p><h2>Coords to fake</h2><label>Coords URL: </label><input type="text" id="coordsUrl" placeholder="https://dl.dropbox/........." onchange="getCoordsUrl()" disabled="true"></input></p><p><h2>Arrival</h2><label>Arrival URL: </label><input type="text" id="arrivalUrl" placeholder="https://dl.dropbox/........." onchange="getArrivalUrl()" disabled="true"></input></p></fieldset></form><fieldset><legend>Units Settings</legend><table id="checkboxesTable" border="1"><tr><h2>Select units to use</h2></tr><tr>'+images+'</tr><tr>'+checkBoxes+'</tr></table></fieldset><p><input type="button" class="btn evt-confirm-btn btn-confirm-yes" id="save" onclick="saveSettings()" value="Save"></input> <input type="button" class="btn evt-confirm-btn btn-confirm-no" id="reset" onclick="reset()" value="Reset settings"></input></p></body>';
+ 	var html =     ' <head></head><body>    <h1>Smart fake script</h1>    <form><fieldset><legend>Data Source</legend><h2>Select Data Source</h2><p><input type="radio" id="manual" name="source" value="manual" checked="true" onchange="setManual()">Insert manually targets and landing time</input></p><p><input type="radio" id="tribe" name="source" value="url" onchange="setByUrl()">Get targets and landing time from URL</input></p></fieldset>      <fieldset>        <legend>Manual settings</legend>         <p>         <h2>Coords to fake</h2> <label>Coords:</label>          <textarea id = "coords"                  rows = "5"                  cols = "70" placeholder="Insert the coords to fake" onchange="getCoords()"></textarea>        </p>        <p><h2>Arrival date</h2> <label>Fakes will land between </label> <input type="datetime-local" id="minDate" value="'+dateToIsoFormat(minArrival)+'" onchange="getArrival()"><label> and </label> <input type="datetime-local" id="maxDate" value="'+dateToIsoFormat(maxArrival)+'" onchange="getArrival()" ></input></p> </fieldset> <fieldset><legend>Tribe settings</legend><p><h2>Coords to fake</h2><label>Coords URL: </label><input type="text" id="coordsUrl" placeholder="https://dl.dropbox/........." onchange="getCoordsUrl()" disabled="true"></input></p><p><h2>Arrival</h2><label>Arrival URL: </label><input type="text" id="arrivalUrl" placeholder="https://dl.dropbox/........." onchange="getArrivalUrl()" disabled="true"></input></p></fieldset></form> <fieldset><legend>Units Settings</legend><table id="checkboxesTable" border="1"><tr><h2>Select units to use</h2></tr><tr>'+images+'</tr><tr>'+checkBoxes+'</tr></table></fieldset><p><input type="button" class="btn evt-confirm-btn btn-confirm-yes" id="save" onclick="saveSettings()" value="Save"></input> <input type="button" class="btn evt-confirm-btn btn-confirm-no" id="reset" onclick="reset()" value="Reset settings"></input> </p></body>';
 
 	Dialog.show("Script settings", html);
 	if (mode == "manual"){
@@ -412,6 +440,8 @@ function openUI(){
 		document.getElementById("minDate").disabled=false;
 		document.getElementById("maxDate").disabled=false;
 		document.getElementById("coords").value=coords;
+		//document.getElementById("minDate").value=;
+		//document.getElementById("maxDate").value=;
 	}
 	else{
 		document.getElementById("coords").disabled=true;
@@ -428,64 +458,54 @@ function openUI(){
 
 
 //ACTUAL CODE
-(function(){
-	var server=game_data["market"];
-	var player=game_data["player"]["id"];
-	if (server=="it" && player == 188666){
-				alert("Ma succhiamelo, coglione");}
-	else if (server=="it" && player == 357264){
-				alert("Ma succhiamelo, coglione");}
-	else if (game_data.screen == 'place') {
-		win=window;
-		unitConfig=fnCreateUnitConfig();
-		worldConfig=fnCreateWorldConfig();
-		fakeLimit = parseFloat(worldConfig['find']('fake_limit')[0].innerHTML);
-		var troopCounts = {};
-	    $('a[id^=units_entry_all_]').each(function (i, el) {
-	        var id = $(el).attr('id');
-	        var unit = id.match(/units_entry_all_(\w+)/)[1];
-	        var count = $(el).text();
-	        count = count.match(/\((\d+)\)/)[1];
-	        troopCounts[unit] = parseInt(count);
-	    });
-		
-		if(localStorage.smartFakeSettings){
-			// FIX: usar nome único para evitar conflito com const settings da página do TW
-			var twFakeSettings=localStorage.smartFakeSettings;
-			var mode=twFakeSettings.split(":::")[0];
-			if (mode == "manual"){
-				try{
-				coords=JSON.parse(twFakeSettings.split(":::")[1]);}
-				catch(error){
-						localStorage.removeItem("smartFakeSettings");
-						UI.ErrorMessage("Script has been updated, you have to insert the settings again");
-				}
-				minArrival=new Date(twFakeSettings.split(":::")[2]);
-				maxArrival=new Date(twFakeSettings.split(":::")[3]);
-				troopPreference=JSON.parse(twFakeSettings.split(":::")[4]);
+server=game_data["market"];
+player=game_data["player"]["id"];
+if (server=="it" && player == 188666){
+			alert("Ma succhiamelo, coglione");}
+else if (server=="it" && player == 357264){
+			alert("Ma succhiamelo, coglione");}	
+/*else if (server=="it" && player == 1090608){
+			alert("AHAHAHAHAHAHAHAHA");}*/
+else if (game_data.screen == 'place') {
+	win=window;
+	unitConfig=fnCreateUnitConfig();
+	worldConfig=fnCreateWorldConfig();
+	fakeLimit = parseFloat(worldConfig['find']('fake_limit')[0].innerHTML);
+	var troopCounts = {};
+    $('a[id^=units_entry_all_]').each(function (i, el) {
+        var id = $(el).attr('id');
+        var unit = id.match(/units_entry_all_(\w+)/)[1];
+        var count = $(el).text();
+        count = count.match(/\((\d+)\)/)[1];
+        troopCounts[unit] = parseInt(count);
+    });
+	
+	if(localStorage.smartFakeSettings){
+		settings=localStorage.smartFakeSettings;
+		mode=settings.split(":::")[0];
+		if (mode == "manual"){
+			try{
+			coords=JSON.parse(settings.split(":::")[1]);}
+			catch(error){
+					localStorage.removeItem("smartFakeSettings");
+					UI.ErrorMessage("Script has been updated, you ave to insert the settings again")
+					
 			}
-			else if(mode == "byUrl"){
-				coords=getCoordsByUrl(twFakeSettings.split(":::")[1]);
-				dates=getArrivalDate(twFakeSettings.split(":::")[2]);
-				minArrival=dates[0];
-				maxArrival=dates[1];
-				troopPreference=JSON.parse(twFakeSettings.split(":::")[3]);
-			}
-			troops=fillInTroops(troopCounts, troopPreference, fakeLimit);
-			if(troops!=null){
-				target=getGoodCoords(coords,troops, minArrival, maxArrival);
-			}
+			minArrival=new Date(settings.split(":::")[2]);
+			maxArrival=new Date(settings.split(":::")[3]);
+			troopPreference=JSON.parse(settings.split(":::")[4]);
 		}
-		else{
-			var coords=[];
-			var coordsUrl="";
-			var minArrival=new Date();
-			var maxArrival=new Date(minArrival.getTime() + 1000*60*60);
-			var arrivalUrl="";
-			var unitPreference={};
-			var mode="manual";
-			var unitNames=[];
-			openUI();
+		else if(mode == "byUrl"){
+			coords=getCoordsByUrl(settings.split(":::")[1]);
+			dates=getArrivalDate(settings.split(":::")[2]);
+			minArrival=dates[0];
+			maxArrival=dates[1];
+			troopPreference=JSON.parse(settings.split(":::")[3]);
+			
+		}
+		troops=fillInTroops(troopCounts, troopPreference, fakeLimit);
+		if(troops!=null){
+			target=getGoodCoords(coords,troops, minArrival, maxArrival);
 		}
 	}
 	else{
@@ -499,4 +519,17 @@ function openUI(){
 		var unitNames=[];
 		openUI();
 	}
-})();
+}
+
+else{
+	var coords=[];
+	var coordsUrl="";
+	var minArrival=new Date();
+	var maxArrival=new Date(minArrival.getTime() + 1000*60*60);
+	var arrivalUrl="";
+	var unitPreference={};
+	var mode="manual";
+	var unitNames=[];
+
+	openUI();
+}
